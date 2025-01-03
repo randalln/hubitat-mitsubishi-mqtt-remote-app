@@ -108,12 +108,11 @@ private boolean shouldBeOff(String thermostatMode) {
     boolean ret = false
     def thermostatSetpoint = thermostat.currentValue("thermostatSetpoint")
     def currentTemp = averageTemperature()
-    def delta = thermostatMode == "off" && state.previousThermostatMode ? 1.0 : offDelta
 
     if (thermostatMode == "heat" || state.previousThermostatMode == "heat") {
-        ret = currentTemp > thermostatSetpoint + delta
+        ret = currentTemp > thermostatSetpoint + offDelta
     } else if (thermostatMode == "cool" || state.previousThermostatMode == "cool") {
-        ret = currentTemp < thermostatSetpoint - delta
+        ret = currentTemp < thermostatSetpoint - offDelta
     }
 
     logDebug "shouldBeOff(): ${ret}"
