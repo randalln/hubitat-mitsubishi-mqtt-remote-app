@@ -6,6 +6,7 @@ This is a companion app for sethkinast's fantastic [Hubitat driver](https://gith
 
 - Remote Sensor app can turn off the heat pump if it overshoots setpoints (because multi-head Mitsubishi HPs bleed to 
   all heads), and will turn it back on when the temp gets back into range
+- Coming soon: Remote sensor timeout setting will revert heat pump to internal sensor
 
 ## Prerequisites
 
