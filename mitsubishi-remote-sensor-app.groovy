@@ -1,3 +1,5 @@
+import groovy.transform.Field
+
 definition(
         name: "Mitsubishi Remote Sensor with Heat Pump",
         namespace: "randalln",
@@ -15,13 +17,16 @@ preferences {
             label()
             input "sensors", "capability.temperatureMeasurement", title: "Sensors", required: true, multiple: true
             input "thermostat", "device.MitsubishiHeatPumpMQTT", title: "Heat Pump", required: true
-            input name: "timeout", type: "Sensor timeout", title: "Timeout (minutes)", width: 4
+            input name: "avoidImmediateCycle", type: "bool", title: "Adjust setpoint to avoid an immediate cycle when turned on?"
+            input name: "timeout", type: "Sensor timeout", title: "Sensor timeout (minutes) before switching to internal heat pump sensor"
             input name: "canTurnOff", type: "bool", title: "Turn off if too far past setpoint?"
             input name: "offDelta", type: "decimal", title: "Degrees", width: 4
             input name: "logEnable", type: "bool", title: "Enable logging?"
         }
     }
 }
+
+@Field static def avoidImmediateCycleDegrees = 2.0
 
 void installed() {
     updated() // since installed() rather than updated() will run the first time the user selects "Done"
@@ -32,7 +37,7 @@ void uninstalled() {
     useInternalSensor()
 }
 
-private void useInternalSensor() {
+void useInternalSensor() {
     if (thermostat) {
         thermostat.setRemoteTemperature(0)
     }
@@ -55,14 +60,14 @@ void updated() {
     thermostat.setRemoteTemperature(averageTemperature())
 }
 
-private void sensorHandler(evt) {
+void sensorHandler(evt) {
     logDebug "sensorHandler(): ${evt.name} ${evt.value}"
     scheduleSensorCheck() // If operating, reschedule an existing timeout from now
     thermostat.setRemoteTemperature(averageTemperature())
     toggleThermostatModeAsNeeded()
 }
 
-private void scheduleSensorCheck() {
+void scheduleSensorCheck() {
     logDebug("scheduleSensorCheck()")
     unschedule("checkSensorActivity")
     if (timeout) {
@@ -77,17 +82,17 @@ private void scheduleSensorCheck() {
 /**
  * If the callback is not unscheduled, set the internal HP sensor active
  */
-private void checkSensorActivity() {
+void checkSensorActivity() {
     log.info "Sensor timeout: Setting to internal sensor"
     useInternalSensor()
 }
 
-private void thermostatTempHandler(evt) {
+void thermostatTempHandler(evt) {
     logDebug "thermostatTempHandler(): ${evt.name} ${evt.value}"
     toggleThermostatModeAsNeeded()
 }
 
-private void toggleThermostatModeAsNeeded() {
+void toggleThermostatModeAsNeeded() {
     String thermostatMode = thermostat.currentValue("thermostatMode")
 
     if (canTurnOff && offDelta > 0) {
@@ -112,35 +117,48 @@ private void toggleThermostatModeAsNeeded() {
     }
 }
 
-private boolean tooFarPastSetpoint(String thermostatMode) {
+boolean tooFarPastSetpoint(String thermostatMode) {
     boolean ret = false
     def thermostatSetpoint = thermostat.currentValue("thermostatSetpoint")
     def currentTemp = averageTemperature()
+    def delta = offDelta > avoidImmediateCycleDegrees ? avoidImmediateCycleDegrees : offDelta
 
     if (thermostatMode == "heat" || state.previousThermostatMode == "heat") {
-        ret = currentTemp > thermostatSetpoint + offDelta
+        ret = currentTemp > thermostatSetpoint + delta
     } else if (thermostatMode == "cool" || state.previousThermostatMode == "cool") {
-        ret = currentTemp < thermostatSetpoint - offDelta
+        ret = currentTemp < thermostatSetpoint - delta
     }
 
     logDebug "tooFarPastSetpoint: ${ret}"
     return ret
 }
 
-private void thermostatModeHandler(evt) {
+void thermostatModeHandler(evt) {
     logDebug "thermostatModeHandler(): ${evt.name} ${evt.value}"
-    if (thermostat.currentValue("thermostatMode") != "off" && state.previousThermostatMode) {
-        logDebug "Clearing previousThermostatMode"
-        state.previousThermostatMode = null
+    if (thermostat.currentValue("thermostatMode") != "off") {
+        if (state.previousThermostatMode) { // HP was turned off by this app
+            logDebug "Clearing previousThermostatMode"
+            state.previousThermostatMode = null
+        } else if (avoidImmediateCycle) {
+            logDebug "Adjusting setpoint to avoid immediate cycle"
+            // When the HP is turned on outside this app, set the setpoint low enough to not trigger an immediate cycle
+            String thermostatMode = thermostat.currentValue("thermostatMode")
+            def thermostatTemp = thermostat.currentValue("temperature")
+            if (thermostatMode == "heat") {
+                thermostat.setHeatingSetpoint(thermostatTemp - avoidImmediateCycleDegrees)
+            } else if (thermostatMode == "cool") {
+                thermostat.setHeatingSetpoint(thermostatTemp + avoidImmediateCycleDegrees)
+            }
+        }
     }
 }
 
-private void thermostatOperatingStateHandler(evt) {
+void thermostatOperatingStateHandler(evt) {
     logDebug "thermostatOperatingStateHandler(): ${evt.name} ${evt.value}"
     scheduleSensorCheck()
 }
 
-private def averageTemperature() {
+def averageTemperature() {
     def total = 0
     def count = 0
 
@@ -152,7 +170,7 @@ private def averageTemperature() {
     return total / count
 }
 
-private void logDebug(String msg) {
+void logDebug(String msg) {
     if (logEnable) {
         log.debug msg
     }
