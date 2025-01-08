@@ -1,5 +1,7 @@
 import groovy.transform.Field
 
+@Field static def avoidImmediateCycleDegrees = 2.0
+
 definition(
         name: "Mitsubishi Remote Sensor with Heat Pump",
         namespace: "randalln",
@@ -15,18 +17,16 @@ preferences {
     page(name: "mainPage", install: true, uninstall: true) {
         section {
             label()
-            input "sensors", "capability.temperatureMeasurement", title: "Sensors", required: true, multiple: true
             input "thermostat", "device.MitsubishiHeatPumpMQTT", title: "Heat Pump", required: true
+            input "sensors", "capability.temperatureMeasurement", title: "Sensors", required: true, multiple: true
             input name: "avoidImmediateCycle", type: "bool", title: "Adjust setpoint to avoid an immediate cycle when turned on?"
             input name: "timeout", type: "Sensor timeout", title: "Sensor timeout (minutes) before switching to internal heat pump sensor"
-            input name: "canTurnOff", type: "bool", title: "Turn off if too far past setpoint?"
-            input name: "offDelta", type: "decimal", title: "Degrees", width: 4
+            input name: "canTurnOff", type: "bool", title: "Turn off if too far past setpoint? (<= ${avoidImmediateCycleDegrees})"
+            input name: "offDelta", type: "decimal", title: "Degrees past setpoint", width: 4
             input name: "logEnable", type: "bool", title: "Enable logging?"
         }
     }
 }
-
-@Field static def avoidImmediateCycleDegrees = 2.0
 
 void installed() {
     updated() // since installed() rather than updated() will run the first time the user selects "Done"
