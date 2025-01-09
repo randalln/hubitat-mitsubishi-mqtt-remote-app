@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2025 Randall Norviel <randallndev@gmail.com>
+
+SPDX-License-Identifier: MIT
+-->
+
 # Mitsubishi Heat Pump Hubitat Remote Sensor App
 
 This is a companion app for sethkinast's fantastic [Hubitat driver](https://github.com/randalln/hubitat-mitsubishi-mqtt) for Mitsubishi heat pumps.

@@ -1,3 +1,14 @@
+// SPDX-FileCopyrightText: 2025 Randall Norviel <randallndev@gmail.com>
+//
+// SPDX-License-Identifier: MIT
+
+/**
+ * Hubitat App
+ * Mitsubishi Heat Pump Remote Sensor
+ * v0.2
+ * https://github.com/randalln/hubitat-mitsubishi-mqtt-remote-app
+ */
+
 definition(
         name: "Mitsubishi Remote Sensor Manager",
         namespace: "randalln",
