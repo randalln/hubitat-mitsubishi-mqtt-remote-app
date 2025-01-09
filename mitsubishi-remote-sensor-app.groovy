@@ -5,13 +5,17 @@
 
 /**
  * Mitsubishi Heat Pump Remote Sensor
- * v0.2.0
+ * v0.2.1
  * https://github.com/randalln/hubitat-mitsubishi-mqtt-remote-app
+ *
+ * Changelog:
+ * v0.2.1 Disabling avoidImmediateCycle for now
  */
 
 import groovy.transform.Field
 
 @Field static def avoidImmediateCycleDegrees = 2.0
+def avoidImmediateCycle = null // Not behaving the way I'd like, so disable feature for now
 
 definition(
         name: "Mitsubishi Remote Sensor with Heat Pump",
@@ -30,9 +34,9 @@ preferences {
             label()
             input "thermostat", "device.MitsubishiHeatPumpMQTT", title: "Heat Pump", required: true
             input "sensors", "capability.temperatureMeasurement", title: "Sensors", required: true, multiple: true
-            input name: "avoidImmediateCycle", type: "bool", title: "Adjust setpoint to avoid an immediate cycle when turned on?"
+            // input name: "avoidImmediateCycle", type: "bool", title: "Adjust setpoint to avoid an immediate cycle when turned on?"
             input name: "timeout", type: "Sensor timeout", title: "Sensor timeout (minutes) before switching to internal heat pump sensor"
-            input name: "canTurnOff", type: "bool", title: "Turn off if too far past setpoint? (<= ${avoidImmediateCycleDegrees})"
+            input name: "canTurnOff", type: "bool", title: "Turn off if too far past setpoint?"
             input name: "offDelta", type: "decimal", title: "Degrees past setpoint", width: 4
             input name: "logEnable", type: "bool", title: "Enable logging?"
         }
@@ -132,7 +136,8 @@ boolean tooFarPastSetpoint(String thermostatMode) {
     boolean ret = false
     def thermostatSetpoint = thermostat.currentValue("thermostatSetpoint")
     def currentTemp = averageTemperature()
-    def delta = offDelta > avoidImmediateCycleDegrees ? avoidImmediateCycleDegrees : offDelta
+    // def delta = offDelta > avoidImmediateCycleDegrees ? avoidImmediateCycleDegrees : offDelta
+    def delta = offDelta
 
     if (thermostatMode == "heat" || state.previousThermostatMode == "heat") {
         ret = currentTemp > thermostatSetpoint + delta
