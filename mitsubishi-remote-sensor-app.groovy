@@ -5,17 +5,17 @@
 
 /**
  * Mitsubishi Heat Pump Remote Sensor
- * v0.2.1
+ * v0.2.2
  * https://github.com/randalln/hubitat-mitsubishi-mqtt-remote-app
  *
  * Changelog:
  * v0.2.1 Disabling avoidImmediateCycle for now
+ * v0.2.2 Bug fix
  */
 
 import groovy.transform.Field
 
-@Field static def avoidImmediateCycleDegrees = 2.0
-def avoidImmediateCycle = null // Not behaving the way I'd like, so disable feature for now
+// @Field static def avoidImmediateCycleDegrees = 2.0
 
 definition(
         name: "Mitsubishi Remote Sensor with Heat Pump",
@@ -155,7 +155,7 @@ void thermostatModeHandler(evt) {
         if (state.previousThermostatMode) { // HP was turned off by this app
             logDebug "Clearing previousThermostatMode"
             state.previousThermostatMode = null
-        } else if (avoidImmediateCycle) {
+        } /* else if (avoidImmediateCycle) {
             logDebug "Adjusting setpoint to avoid immediate cycle"
             // When the HP is turned on outside this app, set the setpoint low enough to not trigger an immediate cycle
             String thermostatMode = thermostat.currentValue("thermostatMode")
@@ -166,6 +166,7 @@ void thermostatModeHandler(evt) {
                 thermostat.setHeatingSetpoint(thermostatTemp + avoidImmediateCycleDegrees)
             }
         }
+        */
     }
 }
 

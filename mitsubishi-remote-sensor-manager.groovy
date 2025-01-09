@@ -4,7 +4,7 @@
 
 /**
  * Mitsubishi Heat Pump Remote Sensor
- * v0.2.1
+ * v0.2.2
  * https://github.com/randalln/hubitat-mitsubishi-mqtt-remote-app
  */
 
