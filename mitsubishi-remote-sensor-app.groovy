@@ -5,7 +5,7 @@
 
 /**
  * Mitsubishi Heat Pump Remote Sensor
- * v0.2.2
+ * v0.2.3
  * https://github.com/randalln/hubitat-mitsubishi-mqtt-remote-app
  *
  * Changelog:
@@ -15,7 +15,7 @@
 
 import groovy.transform.Field
 
-// @Field static def avoidImmediateCycleDegrees = 2.0
+@Field static def avoidImmediateCycleDegrees = 2.0
 
 definition(
         name: "Mitsubishi Remote Sensor with Heat Pump",
@@ -29,19 +29,30 @@ definition(
         )
 
 preferences {
-    page(name: "mainPage", install: true, uninstall: true) {
+    page(name: "mainPage")
+}
+
+def mainPage() {
+    dynamicPage(name: "mainPage", title: "", install: true, uninstall: true) {
         section {
             label()
             input "thermostat", "device.MitsubishiHeatPumpMQTT", title: "Heat Pump", required: true
             input "sensors", "capability.temperatureMeasurement", title: "Sensors", required: true, multiple: true
-            // input name: "avoidImmediateCycle", type: "bool", title: "Adjust setpoint to avoid an immediate cycle when turned on?"
-            input name: "timeout", type: "Sensor timeout", title: "Sensor timeout (minutes) before switching to internal heat pump sensor"
-            input name: "canTurnOff", type: "bool", title: "Turn off if too far past setpoint?"
-            input name: "offDelta", type: "decimal", title: "Degrees past setpoint", width: 4
+            if (!canTurnOff) {
+                input name: "avoidImmediateCycle", type: "bool", title: "Adjust setpoint to avoid an immediate cycle when turned on?",
+                      submitOnChange: true
+            }
+            input name: "timeout", type: "Sensor timeout",
+                  title: "Sensor timeout (minutes while operating) before switching to internal heat pump sensor"
+            if (!avoidImmediateCycle) {
+                input name: "canTurnOff", type: "bool", title: "Turn off if too far past setpoint?", submitOnChange: true
+                input name: "offDelta", type: "decimal", title: "Degrees past setpoint", width: 4
+            }
             input name: "logEnable", type: "bool", title: "Enable logging?"
         }
     }
 }
+
 
 void installed() {
     updated() // since installed() rather than updated() will run the first time the user selects "Done"
@@ -136,16 +147,20 @@ boolean tooFarPastSetpoint(String thermostatMode) {
     boolean ret = false
     def thermostatSetpoint = thermostat.currentValue("thermostatSetpoint")
     def currentTemp = averageTemperature()
-    // def delta = offDelta > avoidImmediateCycleDegrees ? avoidImmediateCycleDegrees : offDelta
-    def delta = offDelta
+    def delta = offDelta > avoidImmediateCycleDegrees ? avoidImmediateCycleDegrees : offDelta
 
     if (thermostatMode == "heat" || state.previousThermostatMode == "heat") {
         ret = currentTemp > thermostatSetpoint + delta
+        if (ret) {
+            logDebug "${currentTemp} > ${thermostatSetpoint} + ${delta}"
+        }
     } else if (thermostatMode == "cool" || state.previousThermostatMode == "cool") {
         ret = currentTemp < thermostatSetpoint - delta
+        if (ret) {
+            logDebug "${currentTemp} < ${thermostatSetpoint} - ${delta}"
+        }
     }
 
-    logDebug "tooFarPastSetpoint: ${ret}"
     return ret
 }
 
@@ -155,18 +170,30 @@ void thermostatModeHandler(evt) {
         if (state.previousThermostatMode) { // HP was turned off by this app
             logDebug "Clearing previousThermostatMode"
             state.previousThermostatMode = null
-        } /* else if (avoidImmediateCycle) {
-            logDebug "Adjusting setpoint to avoid immediate cycle"
-            // When the HP is turned on outside this app, set the setpoint low enough to not trigger an immediate cycle
+        } else if (avoidImmediateCycle) {
+            // Set the setpoint low enough to not trigger an immediate cycle
             String thermostatMode = thermostat.currentValue("thermostatMode")
             def thermostatTemp = thermostat.currentValue("temperature")
             if (thermostatMode == "heat") {
+                logDebug "Saving setpoint to restore: ${thermostat.currentValue("thermostatSetpoint")}"
+                state.restoredSetpoint = thermostat.currentValue("thermostatSetpoint")
                 thermostat.setHeatingSetpoint(thermostatTemp - avoidImmediateCycleDegrees)
+                runIn(60, "restoreSetpoint")
             } else if (thermostatMode == "cool") {
-                thermostat.setHeatingSetpoint(thermostatTemp + avoidImmediateCycleDegrees)
+                logDebug "Saving setpoint to restore: ${thermostat.currentValue("thermostatSetpoint")}"
+                state.restoredSetpoint = thermostat.currentValue("thermostatSetpoint")
+                thermostat.setCoolingSetpoint(thermostatTemp + avoidImmediateCycleDegrees)
+                runIn(30, "restoreSetpoint")
             }
         }
-        */
+    }
+}
+
+void restoreSetpoint() {
+    if (state.restoredSetpoint) {
+        logDebug "Restoring setpoint ${state.restoredSetpoint}"
+        thermostat.setHeatingSetpoint(state.restoredSetpoint)
+        state.restoredSetpoint = null
     }
 }
 
