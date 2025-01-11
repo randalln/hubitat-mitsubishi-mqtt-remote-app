@@ -1,9 +1,9 @@
 {
   "packageName": "Mitsubishi Heat Pump Remote Sensor",
   "author": "Randall Norviel",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "minimumHEVersion": "2.4.0",
-  "dateReleased": "2025-01-08",
+  "dateReleased": "2025-01-11",
   "apps": [
     {
       "id": "be78aed3-8295-4676-846f-8ecc02d5b9a5",
@@ -33,5 +33,6 @@
       "required": true,
       "version": "1.1.4"
     }
-  ]
+  ],
+  "releaseNotes": "Fix avoidImmediateCycle"
 }

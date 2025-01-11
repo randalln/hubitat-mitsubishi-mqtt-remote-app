@@ -11,6 +11,7 @@
  * Changelog:
  * v0.2.1 Disabling avoidImmediateCycle for now
  * v0.2.2 Bug fix
+ * v0.2.3 Fix avoidImmediateCycle
  */
 
 import groovy.transform.Field
@@ -38,16 +39,12 @@ def mainPage() {
             label()
             input "thermostat", "device.MitsubishiHeatPumpMQTT", title: "Heat Pump", required: true
             input "sensors", "capability.temperatureMeasurement", title: "Sensors", required: true, multiple: true
-            if (!canTurnOff) {
-                input name: "avoidImmediateCycle", type: "bool", title: "Adjust setpoint to avoid an immediate cycle when turned on?",
-                      submitOnChange: true
-            }
+            input name: "avoidImmediateCycle", type: "bool", title: "Adjust setpoint to avoid an immediate cycle when turned on?",
+                  submitOnChange: true
             input name: "timeout", type: "Sensor timeout",
                   title: "Sensor timeout (minutes while operating) before switching to internal heat pump sensor"
-            if (!avoidImmediateCycle) {
-                input name: "canTurnOff", type: "bool", title: "Turn off if too far past setpoint?", submitOnChange: true
-                input name: "offDelta", type: "decimal", title: "Degrees past setpoint", width: 4
-            }
+            input name: "canTurnOff", type: "bool", title: "Turn off if too far past setpoint?", submitOnChange: true
+            input name: "offDelta", type: "decimal", title: "Degrees past setpoint", width: 4
             input name: "logEnable", type: "bool", title: "Enable logging?"
         }
     }
@@ -145,19 +142,20 @@ void toggleThermostatModeAsNeeded() {
 
 boolean tooFarPastSetpoint(String thermostatMode) {
     boolean ret = false
-    def thermostatSetpoint = thermostat.currentValue("thermostatSetpoint")
-    def currentTemp = averageTemperature()
-    def delta = offDelta > avoidImmediateCycleDegrees ? avoidImmediateCycleDegrees : offDelta
+    if (!state.restoredSetpoint) { // Skip while waiting to restore setpoint
+        def thermostatSetpoint = thermostat.currentValue("thermostatSetpoint")
+        def currentTemp = averageTemperature()
 
-    if (thermostatMode == "heat" || state.previousThermostatMode == "heat") {
-        ret = currentTemp > thermostatSetpoint + delta
-        if (ret) {
-            logDebug "${currentTemp} > ${thermostatSetpoint} + ${delta}"
-        }
-    } else if (thermostatMode == "cool" || state.previousThermostatMode == "cool") {
-        ret = currentTemp < thermostatSetpoint - delta
-        if (ret) {
-            logDebug "${currentTemp} < ${thermostatSetpoint} - ${delta}"
+        if (thermostatMode == "heat" || state.previousThermostatMode == "heat") {
+            ret = currentTemp > thermostatSetpoint + offDelta
+            if (ret) {
+                logDebug "${currentTemp} > ${thermostatSetpoint} + ${offDelta}"
+            }
+        } else if (thermostatMode == "cool" || state.previousThermostatMode == "cool") {
+            ret = currentTemp < thermostatSetpoint - offDelta
+            if (ret) {
+                logDebug "${currentTemp} < ${thermostatSetpoint} - ${offDelta}"
+            }
         }
     }
 
@@ -170,19 +168,20 @@ void thermostatModeHandler(evt) {
         if (state.previousThermostatMode) { // HP was turned off by this app
             logDebug "Clearing previousThermostatMode"
             state.previousThermostatMode = null
-        } else if (avoidImmediateCycle) {
+        }
+
+        if (avoidImmediateCycle) {
             // Set the setpoint low enough to not trigger an immediate cycle
             String thermostatMode = thermostat.currentValue("thermostatMode")
-            def thermostatTemp = thermostat.currentValue("temperature")
             if (thermostatMode == "heat") {
                 logDebug "Saving setpoint to restore: ${thermostat.currentValue("thermostatSetpoint")}"
                 state.restoredSetpoint = thermostat.currentValue("thermostatSetpoint")
-                thermostat.setHeatingSetpoint(thermostatTemp - avoidImmediateCycleDegrees)
+                thermostat.setHeatingSetpoint(averageTemperature() - avoidImmediateCycleDegrees)
                 runIn(60, "restoreSetpoint")
             } else if (thermostatMode == "cool") {
                 logDebug "Saving setpoint to restore: ${thermostat.currentValue("thermostatSetpoint")}"
                 state.restoredSetpoint = thermostat.currentValue("thermostatSetpoint")
-                thermostat.setCoolingSetpoint(thermostatTemp + avoidImmediateCycleDegrees)
+                thermostat.setCoolingSetpoint(averageTemperature() + avoidImmediateCycleDegrees)
                 runIn(30, "restoreSetpoint")
             }
         }
