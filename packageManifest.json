@@ -27,11 +27,11 @@
   "drivers": [
     {
       "id": "41e7ff72-d251-4584-9bd1-c64c1a18120c",
-      "name": "",
-      "namespace": "",
+      "name": "Mitsubishi Heat Pump MQTT",
+      "namespace": "cogdev",
       "location": "https://raw.githubusercontent.com/randalln/hubitat-mitsubishi-mqtt/master/hubitat-mitsubishi-mqtt.groovy",
       "required": true,
-      "version": "1.1.4"
+      "version": "1.1.5"
     }
   ],
   "releaseNotes": "Logging and Documentation"
