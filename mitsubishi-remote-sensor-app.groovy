@@ -5,13 +5,14 @@
 
 /**
  * Mitsubishi Heat Pump Remote Sensor
- * v0.2.3
+ * v0.2.4
  * https://github.com/randalln/hubitat-mitsubishi-mqtt-remote-app
  *
  * Changelog:
  * v0.2.1 Disabling avoidImmediateCycle for now
  * v0.2.2 Bug fix
  * v0.2.3 Fix avoidImmediateCycle
+ * v0.2.4 Logging and documentation
  */
 
 import groovy.transform.Field
@@ -27,7 +28,8 @@ definition(
         iconUrl: "",
         iconX2Url: "",
         parent: "randalln:Mitsubishi Remote Sensor Manager",
-        )
+        importUrl: "https://raw.githubusercontent.com/randalln/hubitat-mitsubishi-mqtt-remote-app/main/mitsubishi-remote-sensor-app.groovy"
+)
 
 preferences {
     page(name: "mainPage")
@@ -67,7 +69,7 @@ void useInternalSensor() {
 }
 
 void updated() {
-    logDebug "updated(): $app.label"
+    logDebug "updated()"
     unschedule()
     unsubscribe()
 
@@ -106,7 +108,7 @@ void scheduleSensorCheck() {
  * If the callback is not unscheduled, set the internal HP sensor active
  */
 void checkSensorActivity() {
-    log.info "Sensor timeout: Setting to internal sensor"
+    logInfo "Sensor timeout: Setting to internal sensor"
     useInternalSensor()
 }
 
@@ -121,7 +123,7 @@ void toggleThermostatModeAsNeeded() {
     if (canTurnOff && offDelta > 0) {
         if (tooFarPastSetpoint(thermostatMode)) {
             if (thermostatMode != "off") {
-                log.info "Turning off heat pump"
+                logInfo "Turning off heat pump"
                 if (thermostat.currentValue("thermostatOperatingState") != "idle") {
                     log.warn "Heat pump currently operating"
                 }
@@ -130,10 +132,10 @@ void toggleThermostatModeAsNeeded() {
             }
         } else if (thermostatMode == "off") {
             if (state.previousThermostatMode == "heat") {
-                log.info "Setting thermostatMode back to heat"
+                logInfo "Setting thermostatMode back to heat"
                 thermostat.heat()
             } else if (state.previousThermostatMode == "cool") {
-                log.info "Setting thermostatMode back to cool"
+                logInfo "Setting thermostatMode back to cool"
                 thermostat.cool()
             }
         }
@@ -215,6 +217,10 @@ def averageTemperature() {
 
 void logDebug(String msg) {
     if (logEnable) {
-        log.debug msg
+        log.debug "${app.label}: ${msg}"
     }
+}
+
+void logInfo(String msg) {
+    log.info "${app.label}: ${msg}"
 }

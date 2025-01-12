@@ -15,7 +15,8 @@ definition(
         category: "",
         iconUrl: "",
         iconX2Url: "",
-        singleInstance: true
+        singleInstance: true,
+        importURL: "https://raw.githubusercontent.com/randalln/hubitat-mitsubishi-mqtt-remote-app/main/mitsubishi-remote-sensor-manager.groovy"
 )
 
 preferences {
