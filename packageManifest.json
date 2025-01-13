@@ -1,9 +1,9 @@
 {
   "packageName": "Mitsubishi Heat Pump Remote Sensor",
   "author": "Randall Norviel",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "minimumHEVersion": "2.4.0",
-  "dateReleased": "2025-01-12",
+  "dateReleased": "2025-01-13",
   "apps": [
     {
       "id": "be78aed3-8295-4676-846f-8ecc02d5b9a5",
@@ -34,5 +34,5 @@
       "version": "1.1.5"
     }
   ],
-  "releaseNotes": "Logging and Documentation"
+  "releaseNotes": "Cancel setpoint restoration if user updates it"
 }
