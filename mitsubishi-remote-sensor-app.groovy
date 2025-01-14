@@ -5,7 +5,7 @@
 
 /**
  * Mitsubishi Heat Pump Remote Sensor
- * v0.2.5
+ * v0.2.6
  * https://github.com/randalln/hubitat-mitsubishi-mqtt-remote-app
  *
  * Changelog:
@@ -14,6 +14,7 @@
  * v0.2.3 Fix avoidImmediateCycle
  * v0.2.4 Logging and documentation
  * v0.2.5 Cancel setpoint restoration if user updates it
+ * v0.2.6 Bug fix
  */
 
 import groovy.transform.Field
@@ -225,6 +226,8 @@ void clearRestoredSetpoint() {
 }
 
 void setSetpoint(def setpoint) {
+    String thermostatMode = thermostat.currentValue("thermostatMode")
+
     if (thermostatMode == "heat") {
         thermostat.setHeatingSetpoint(setpoint)
     } else if (thermostatMode == "cool") {
