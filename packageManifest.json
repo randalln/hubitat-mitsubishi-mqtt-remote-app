@@ -1,9 +1,9 @@
 {
   "packageName": "Mitsubishi Heat Pump Remote Sensor",
   "author": "Randall Norviel",
-  "version": "0.2.6",
+  "version": "0.2.8",
   "minimumHEVersion": "2.4.0",
-  "dateReleased": "2025-01-14",
+  "dateReleased": "2025-01-26",
   "apps": [
     {
       "id": "be78aed3-8295-4676-846f-8ecc02d5b9a5",
@@ -34,5 +34,5 @@
       "version": "1.1.5"
     }
   ],
-  "releaseNotes": "Bug fix"
+  "releaseNotes": "Set temperature at idle"
 }

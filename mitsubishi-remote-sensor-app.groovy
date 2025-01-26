@@ -5,7 +5,7 @@
 
 /**
  * Mitsubishi Heat Pump Remote Sensor
- * v0.2.6
+ * v0.2.8
  * https://github.com/randalln/hubitat-mitsubishi-mqtt-remote-app
  *
  * Changelog:
@@ -15,6 +15,8 @@
  * v0.2.4 Logging and documentation
  * v0.2.5 Cancel setpoint restoration if user updates it
  * v0.2.6 Bug fix
+ * v0.2.7 Bug fix
+ * v0.2.8 Set temperature at idle
  */
 
 import groovy.transform.Field
@@ -95,7 +97,6 @@ void sensorHandler(evt) {
 }
 
 void scheduleSensorCheck() {
-    logDebug("scheduleSensorCheck()")
     unschedule("checkSensorActivity")
     if (timeout) {
         String thermostatOperatingState = thermostat.currentValue("thermostatOperatingState")
@@ -115,10 +116,10 @@ void checkSensorActivity() {
 }
 
 void thermostatTempHandler(evt) {
-    logDebug "thermostatTempHandler(): ${evt.name} ${evt.value}"
+    logDebug "thermostatTempHandler(): ${evt.name} ${evt.value} ${state.restoringSetpointCounter}"
     if (state.restoringSetpointCounter == 1) { // Ignore the app changing the setpoint
         state.restoringSetpointCounter++
-    } else if (state.restoringSetpointCounter >= 2) { // The user changed the setpoint outside of the app
+    } else if (state.restoringSetpointCounter >= 2) { // The user changed the setpoint
         clearRestoredSetpoint()
     }
     toggleThermostatModeAsNeeded()
@@ -155,16 +156,20 @@ boolean tooFarPastSetpoint(String thermostatMode) {
         def thermostatSetpoint = thermostat.currentValue("thermostatSetpoint")
         def currentTemp = averageTemperature()
 
-        if (thermostatMode == "heat" || state.previousThermostatMode == "heat") {
+        if (thermostatMode == "heat") {
             ret = currentTemp > thermostatSetpoint + offDelta
             if (ret) {
                 logDebug "${currentTemp} > ${thermostatSetpoint} + ${offDelta}"
             }
-        } else if (thermostatMode == "cool" || state.previousThermostatMode == "cool") {
+        } else if (state.previousThermostatMode == "heat") {
+            ret = currentTemp > thermostatSetpoint + offDelta - 0.5
+        } else if (thermostatMode == "cool") {
             ret = currentTemp < thermostatSetpoint - offDelta
             if (ret) {
                 logDebug "${currentTemp} < ${thermostatSetpoint} - ${offDelta}"
             }
+        } else if (state.previousThermostatMode == "cool") {
+            ret = currentTemp < thermostatSetpoint - offDelta + 0.5
         }
     }
 
@@ -198,6 +203,7 @@ void thermostatModeHandler(evt) {
             }
         }
     } else {
+        unschedule("checkSensorActivity")
         clearRestoredSetpoint()
     }
 }
@@ -238,6 +244,10 @@ void setSetpoint(def setpoint) {
 void thermostatOperatingStateHandler(evt) {
     logDebug "thermostatOperatingStateHandler(): ${evt.name} ${evt.value}"
     scheduleSensorCheck()
+    if (evt.value == "idle") {
+        logDebug "Setting remote temp at idle: ${averageTemperature()}"
+        thermostat.setRemoteTemperature(averageTemperature())
+    }
 }
 
 def averageTemperature() {
