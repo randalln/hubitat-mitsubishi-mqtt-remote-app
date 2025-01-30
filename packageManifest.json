@@ -30,7 +30,7 @@
       "name": "Mitsubishi Heat Pump MQTT",
       "namespace": "cogdev",
       "location": "https://raw.githubusercontent.com/randalln/hubitat-mitsubishi-mqtt/master/hubitat-mitsubishi-mqtt.groovy",
-      "required": true,
+      "required": false,
       "version": "1.1.5"
     }
   ],
