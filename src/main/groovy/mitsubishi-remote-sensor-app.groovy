@@ -5,18 +5,19 @@
 
 /**
  * Mitsubishi Heat Pump Remote Sensor
- * v0.2.8
+ * v0.2.9
  * https://github.com/randalln/hubitat-mitsubishi-mqtt-remote-app
  *
  * Changelog:
- * v0.2.1 Disabling avoidImmediateCycle for now
- * v0.2.2 Bug fix
- * v0.2.3 Fix avoidImmediateCycle
- * v0.2.4 Logging and documentation
- * v0.2.5 Cancel setpoint restoration if user updates it
- * v0.2.6 Bug fix
- * v0.2.7 Bug fix
+ * v0.2.9 Convert to gradle project
  * v0.2.8 Set temperature at idle
+ * v0.2.7 Bug fix
+ * v0.2.6 Bug fix
+ * v0.2.5 Cancel setpoint restoration if user updates it
+ * v0.2.4 Logging and documentation
+ * v0.2.3 Fix avoidImmediateCycle
+ * v0.2.2 Bug fix
+ * v0.2.1 Disabling avoidImmediateCycle for now
  */
 
 import groovy.transform.Field
@@ -32,7 +33,8 @@ definition(
         iconUrl: "",
         iconX2Url: "",
         parent: "randalln:Mitsubishi Remote Sensor Manager",
-        importUrl: "https://raw.githubusercontent.com/randalln/hubitat-mitsubishi-mqtt-remote-app/main/mitsubishi-remote-sensor-app.groovy"
+        importUrl: "https://raw.githubusercontent.com/randalln/hubitat-mitsubishi-mqtt-remote-app/main/src/main/groovy/" +
+                "mitsubishi-remote-sensor-app.groovy"
 )
 
 preferences {
