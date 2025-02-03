@@ -26,8 +26,9 @@ This is a companion app for sethkinast's fantastic [Hubitat driver](https://gith
    1. Installing through HPM by adding a [custom repository](https://raw.githubusercontent.com/randalln/randalln-hubitat/main/repository.json) (for 
       now) and installing via **Browse by Tags -> Control -> Mitsubishi Heat Pump Remote Sensor**
    2. Going to **Apps Code -> Add app -> Import** and pasting in the importURLs for the
-      [manager](https://raw.githubusercontent.com/randalln/hubitat-mitsubishi-mqtt-remote-app/main/mitsubishi-remote-sensor-manager.groovy) and
-      [child](https://raw.githubusercontent.com/randalln/hubitat-mitsubishi-mqtt-remote-app/main/mitsubishi-remote-sensor-app.groovy) apps
+      [manager](https://raw.githubusercontent.com/randalln/hubitat-mitsubishi-mqtt-remote-app/main/src/main/groovy/mitsubishi-remote-sensor-manager.groovy) and
+      [child](https://raw.githubusercontent.com/randalln/hubitat-mitsubishi-mqtt-remote-app/main/src/main/groovy/mitsubishi-remote-sensor-app.groovy) 
+      apps
 2. Add the manager app by going to **Apps -> Add user app ->** `Mitsubishi Remote Sensor Manager`
 3. Add a child app by going to **Apps -> `Mitsubishi Remote Sensor Manager` -> `New Remote Sensor`**
    - (Optional) Allow the app to set the thermostat mode to **off** if it exceeds the setpoint by some degrees, then  set the heat pump

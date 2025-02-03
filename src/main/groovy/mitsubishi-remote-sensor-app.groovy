@@ -5,10 +5,11 @@
 
 /**
  * Mitsubishi Heat Pump Remote Sensor
- * v0.2.9
+ * v0.2.10
  * https://github.com/randalln/hubitat-mitsubishi-mqtt-remote-app
  *
  * Changelog:
+ * v0.2.10 Fix HPM manifest
  * v0.2.9 Convert to gradle project
  * v0.2.8 Set temperature at idle
  * v0.2.7 Bug fix
