@@ -5,10 +5,11 @@
 
 /**
  * Mitsubishi Heat Pump Remote Sensor
- * v0.2.10
+ * v0.2.11
  * https://github.com/randalln/hubitat-mitsubishi-mqtt-remote-app
  *
  * Changelog:
+ * v0.2.11 Remove avoidImmediateCycle, having moved it into the driver
  * v0.2.10 Fix HPM manifest
  * v0.2.9 Convert to gradle project
  * v0.2.8 Set temperature at idle
@@ -48,7 +49,6 @@ def mainPage() {
             label()
             input "thermostat", "device.MitsubishiHeatPumpMQTT", title: "Heat Pump", required: true
             input "sensors", "capability.temperatureMeasurement", title: "Sensors", required: true, multiple: true
-            input name: "avoidImmediateCycle", type: "bool", title: "Adjust setpoint to avoid an immediate cycle when turned on?"
             input name: "timeout", type: "Sensor timeout",
                   title: "Sensor timeout (minutes while operating) before switching to internal heat pump sensor"
             input name: "canTurnOff", type: "bool", title: "Turn off if too far past setpoint?"
@@ -119,12 +119,7 @@ void checkSensorActivity() {
 }
 
 void thermostatTempHandler(evt) {
-    logDebug "thermostatTempHandler(): ${evt.name} ${evt.value} ${state.restoringSetpointCounter}"
-    if (state.restoringSetpointCounter == 1) { // Ignore the app changing the setpoint
-        state.restoringSetpointCounter++
-    } else if (state.restoringSetpointCounter >= 2) { // The user changed the setpoint
-        clearRestoredSetpoint()
-    }
+    logDebug "thermostatTempHandler(): ${evt.name} ${evt.value}"
     toggleThermostatModeAsNeeded()
 }
 
@@ -155,25 +150,23 @@ void toggleThermostatModeAsNeeded() {
 
 boolean tooFarPastSetpoint(String thermostatMode) {
     boolean ret = false
-    if (!state.restoringSetpointCounter) { // Skip while waiting to restore setpoint
-        def thermostatSetpoint = thermostat.currentValue("thermostatSetpoint")
-        def currentTemp = averageTemperature()
+    def thermostatSetpoint = thermostat.currentValue("thermostatSetpoint")
+    def currentTemp = averageTemperature()
 
-        if (thermostatMode == "heat") {
-            ret = currentTemp > thermostatSetpoint + offDelta
-            if (ret) {
-                logDebug "${currentTemp} > ${thermostatSetpoint} + ${offDelta}"
-            }
-        } else if (state.previousThermostatMode == "heat") {
-            ret = currentTemp > thermostatSetpoint + offDelta - 0.5
-        } else if (thermostatMode == "cool") {
-            ret = currentTemp < thermostatSetpoint - offDelta
-            if (ret) {
-                logDebug "${currentTemp} < ${thermostatSetpoint} - ${offDelta}"
-            }
-        } else if (state.previousThermostatMode == "cool") {
-            ret = currentTemp < thermostatSetpoint - offDelta + 0.5
+    if (thermostatMode == "heat") {
+        ret = currentTemp > thermostatSetpoint + offDelta
+        if (ret) {
+            logDebug "${currentTemp} > ${thermostatSetpoint} + ${offDelta}"
         }
+    } else if (state.previousThermostatMode == "heat") {
+        ret = currentTemp > thermostatSetpoint + offDelta - 0.5
+    } else if (thermostatMode == "cool") {
+        ret = currentTemp < thermostatSetpoint - offDelta
+        if (ret) {
+            logDebug "${currentTemp} < ${thermostatSetpoint} - ${offDelta}"
+        }
+    } else if (state.previousThermostatMode == "cool") {
+        ret = currentTemp < thermostatSetpoint - offDelta + 0.5
     }
 
     return ret
@@ -187,50 +180,8 @@ void thermostatModeHandler(evt) {
             logDebug "Clearing previousThermostatMode"
             state.previousThermostatMode = null
         }
-
-        if (avoidImmediateCycle) {
-            // Set the setpoint low enough to not trigger an immediate cycle
-            def thermostatSetpoint = thermostat.currentValue("thermostatSetpoint")
-            if (thermostatMode == "heat") {
-                def tempSetpoint = averageTemperature() - avoidImmediateCycleDegrees
-                if (tempSetpoint < thermostatSetpoint) {
-                    saveSetpoint(thermostatSetpoint)
-                    setSetpoint(tempSetpoint)
-                }
-            } else if (thermostatMode == "cool") {
-                def tempSetpoint = averageTemperature() + avoidImmediateCycleDegrees
-                if (tempSetpoint > thermostatSetpoint) {
-                    saveSetpoint(thermostatSetpoint)
-                    setSetpoint(tempSetpoint)
-                }
-            }
-        }
     } else {
         unschedule("checkSensorActivity")
-        clearRestoredSetpoint()
-    }
-}
-
-void saveSetpoint(def setpoint) {
-    logDebug "Saving setpoint to restore: ${setpoint}"
-    state.restoringSetpointCounter = 1
-    state.restoredSetpoint = setpoint
-    runIn(60, "restoreSetpoint")
-}
-
-void restoreSetpoint() {
-    if (state.restoredSetpoint) {
-        logDebug "Restoring setpoint ${state.restoredSetpoint}"
-        setSetpoint(state.restoredSetpoint)
-        clearRestoredSetpoint()
-    }
-}
-
-void clearRestoredSetpoint() {
-    if (state.restoringSetpointCounter > 0 || state.restoredSetpoint) {
-        logDebug("Clearing saved setpoint")
-        state.restoringSetpointCounter = 0
-        state.restoredSetpoint = null
     }
 }
 

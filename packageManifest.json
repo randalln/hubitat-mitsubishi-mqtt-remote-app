@@ -1,9 +1,9 @@
 {
   "packageName": "Mitsubishi Heat Pump Remote Sensor",
   "author": "Randall Norviel",
-  "version": "0.2.10",
+  "version": "0.2.11",
   "minimumHEVersion": "2.4.0",
-  "dateReleased": "2025-02-03",
+  "dateReleased": "2025-02-05",
   "apps": [
     {
       "id": "be78aed3-8295-4676-846f-8ecc02d5b9a5",
@@ -25,5 +25,5 @@
     }
   ],
   "drivers": [],
-  "releaseNotes": "[v0.2.10] Fix HPM manifest"
+  "releaseNotes": "[v0.2.11] Remove avoidImmediateCycle, having moved it into the driver"
 }
