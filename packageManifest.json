@@ -9,7 +9,7 @@
       "id": "be78aed3-8295-4676-846f-8ecc02d5b9a5",
       "name": "Mitsubishi Remote Sensor Manager",
       "namespace": "randalln",
-      "location": "https://raw.githubusercontent.com/randalln/hubitat-mitsubishi-mqtt-remote-app/main/mitsubishi-remote-sensor-manager.groovy",
+      "location": "https://raw.githubusercontent.com/randalln/hubitat-mitsubishi-mqtt-remote-app/main/src/main/groovy/mitsubishi-remote-sensor-manager.groovy",
       "required": true,
       "oauth": false,
       "primary": true
@@ -18,7 +18,7 @@
       "id": "5b88c872-011e-49dd-bb90-63e146b99bbb",
       "name": "Mitsubishi Remote Sensor with Heat Pump",
       "namespace": "randalln",
-      "location": "https://raw.githubusercontent.com/randalln/hubitat-mitsubishi-mqtt-remote-app/main/mitsubishi-remote-sensor-app.groovy",
+      "location": "https://raw.githubusercontent.com/randalln/hubitat-mitsubishi-mqtt-remote-app/main/src/main/groovy/mitsubishi-remote-sensor-app.groovy",
       "required": true,
       "oauth": false,
       "primary": false
