@@ -22,10 +22,10 @@ This is a companion app for sethkinast's fantastic [Hubitat driver](https://gith
    there is a network outage or another type of failure
 
 ## Installation
-1. Add the apps (and driver, for now) code to Hubitat by either:
-   1. Installing through HPM by adding a [custom repository](https://raw.githubusercontent.com/randalln/randalln-hubitat/main/repository.json) (for 
-      now) and installing via **Browse by Tags -> Control -> Mitsubishi Heat Pump Remote Sensor**
-   2. Going to **Apps Code -> Add app -> Import** and pasting in the importURLs for the
+1. Add the apps (and driver if you need it) code to Hubitat by either:
+   - Installing through Hubitat Package Manager by searching for "Mitsubishi Heat Pump"  
+     **OR**
+   - Going to **Apps Code -> Add app -> Import** and pasting in the importURLs for the
       [manager](https://raw.githubusercontent.com/randalln/hubitat-mitsubishi-mqtt-remote-app/main/src/main/groovy/mitsubishi-remote-sensor-manager.groovy) and
       [child](https://raw.githubusercontent.com/randalln/hubitat-mitsubishi-mqtt-remote-app/main/src/main/groovy/mitsubishi-remote-sensor-app.groovy) 
       apps
