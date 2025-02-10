@@ -5,21 +5,7 @@
 
 /**
  * Mitsubishi Heat Pump Remote Sensor
- * v0.2.11
  * https://github.com/randalln/hubitat-mitsubishi-mqtt-remote-app
- *
- * Changelog:
- * v0.2.11 Remove avoidImmediateCycle, having moved it into the driver
- * v0.2.10 Fix HPM manifest
- * v0.2.9 Convert to gradle project
- * v0.2.8 Set temperature at idle
- * v0.2.7 Bug fix
- * v0.2.6 Bug fix
- * v0.2.5 Cancel setpoint restoration if user updates it
- * v0.2.4 Logging and documentation
- * v0.2.3 Fix avoidImmediateCycle
- * v0.2.2 Bug fix
- * v0.2.1 Disabling avoidImmediateCycle for now
  */
 
 import groovy.transform.Field
@@ -49,7 +35,7 @@ def mainPage() {
             label()
             input "thermostat", "device.MitsubishiHeatPumpMQTT", title: "Heat Pump", required: true
             input "sensors", "capability.temperatureMeasurement", title: "Sensors", required: true, multiple: true
-            input name: "timeout", type: "Sensor timeout",
+            input name: "timeout", type: "number",
                   title: "Sensor timeout (minutes while operating) before switching to internal heat pump sensor"
             input name: "canTurnOff", type: "bool", title: "Turn off if too far past setpoint?"
             input name: "offDelta", type: "decimal", title: "Degrees past setpoint", range: "1.1..10", width: 4
@@ -94,18 +80,23 @@ void updated() {
 
 void sensorHandler(evt) {
     logDebug "sensorHandler(): ${evt.name} ${evt.value}"
-    scheduleSensorCheck() // If operating, reschedule an existing timeout from now
+    try { // Protect (as best one can) against Groovy
+        scheduleSensorCheck() // If operating, reschedule an existing timeout from now
+    } catch (Exception e) {
+        sensorTimeout()
+        throw e
+    }
     thermostat.setRemoteTemperature(averageTemperature())
     toggleThermostatModeAsNeeded()
 }
 
 void scheduleSensorCheck() {
-    unschedule("checkSensorActivity")
+    unschedule("sensorTimeout")
     if (timeout) {
         String thermostatOperatingState = thermostat.currentValue("thermostatOperatingState")
         if (thermostatOperatingState == "heating" || thermostatOperatingState == "cooling") {
-            logDebug("Scheduling checkSensorActivity in ${timeout} minutes")
-            runIn(Long.parseLong(timeout) * 60, "checkSensorActivity")
+            logDebug("Scheduling sensorTimeout in ${timeout} minutes")
+            runIn(timeout * 60, "sensorTimeout")
         }
     }
 }
@@ -113,7 +104,7 @@ void scheduleSensorCheck() {
 /**
  * If the callback is not unscheduled, set the internal HP sensor active
  */
-void checkSensorActivity() {
+void sensorTimeout() {
     logInfo "Sensor timeout: Setting to internal sensor"
     useInternalSensor()
 }
@@ -181,7 +172,7 @@ void thermostatModeHandler(evt) {
             state.previousThermostatMode = null
         }
     } else {
-        unschedule("checkSensorActivity")
+        unschedule("sensorTimeout")
     }
 }
 
