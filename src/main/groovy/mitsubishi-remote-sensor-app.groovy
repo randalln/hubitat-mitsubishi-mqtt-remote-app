@@ -37,8 +37,16 @@ def mainPage() {
             input "sensors", "capability.temperatureMeasurement", title: "Sensors", required: true, multiple: true
             input name: "timeout", type: "number",
                   title: "Sensor timeout (minutes while operating) before switching to internal heat pump sensor"
-            input name: "canTurnOff", type: "bool", title: "Turn off if too far past setpoint?"
-            input name: "offDelta", type: "decimal", title: "Degrees past setpoint", range: "1.1..10", width: 4
+            input name: "canTurnOff", type: "bool", title: "Turn off if too far past setpoint?", width: 4, submitOnChange: true
+            if (canTurnOff) {
+                input name: "offDeltaByVariable", type: "bool", title: "Use variable", submitOnChange: true, width: 4
+                if (!offDeltaByVariable) {
+                    input name: "offDelta", type: "decimal", title: "Degrees past setpoint", range: "1.1..10"
+                } else {
+                    List vars = []
+                    input "offDeltaVariable", "enum", options: getGlobalVarsByType("bigdecimal").keySet().collect().sort { it.capitalize() }
+                }
+            }
             input name: "logEnable", type: "bool", title: "Enable logging?"
         }
     }
@@ -53,7 +61,7 @@ void uninstalled() {
     useInternalSensor()
 }
 
-void useInternalSensor() {
+private void useInternalSensor() {
     if (thermostat) {
         thermostat.setRemoteTemperature(0)
     }
@@ -61,9 +69,11 @@ void useInternalSensor() {
 
 void updated() {
     logDebug "updated()"
+    removeAllInUseGlobalVar()
     unschedule()
     unsubscribe()
 
+    subscribeToOffDeltaVariable()
     subscribe(sensors, "temperature", sensorHandler)
     // To turn HP on or off
     subscribe(thermostat, "thermostatSetpoint", thermostatTempHandler)
@@ -78,6 +88,27 @@ void updated() {
     scheduleSensorCheck()
 }
 
+private void subscribeToOffDeltaVariable() {
+    if (canTurnOff && offDeltaByVariable && offDeltaVariable) {
+        offDelta = getGlobalVar(offDeltaVariable).value
+        logDebug "offDelta: ${offDelta}"
+        addInUseGlobalVar(offDeltaVariable)
+        subscribe(location, "variable:${offDeltaVariable}", "offDeltaVariableHandler")
+    }
+}
+
+void offDeltaVariableHandler(evt) {
+    offDelta = evt.value
+    logDebug "offDelta: ${offDelta}"
+}
+
+void renameVariable(String oldName, String newName) {
+    logDebug "${oldName} renamed to ${newName}"
+    removeInUseGlobalVar(oldName)
+    offDeltaVariable = newName
+    subscribeToOffDeltaVariable()
+}
+
 void sensorHandler(evt) {
     logDebug "sensorHandler(): ${evt.name} ${evt.value}"
     try { // Protect (as best one can) against Groovy
@@ -90,7 +121,7 @@ void sensorHandler(evt) {
     toggleThermostatModeAsNeeded()
 }
 
-void scheduleSensorCheck() {
+private void scheduleSensorCheck() {
     unschedule("sensorTimeout")
     if (timeout) {
         String thermostatOperatingState = thermostat.currentValue("thermostatOperatingState")
@@ -176,16 +207,6 @@ void thermostatModeHandler(evt) {
     }
 }
 
-void setSetpoint(def setpoint) {
-    String thermostatMode = thermostat.currentValue("thermostatMode")
-
-    if (thermostatMode == "heat") {
-        thermostat.setHeatingSetpoint(setpoint)
-    } else if (thermostatMode == "cool") {
-        thermostat.setCoolingSetpoint(setpoint)
-    }
-}
-
 void thermostatOperatingStateHandler(evt) {
     logDebug "thermostatOperatingStateHandler(): ${evt.name} ${evt.value}"
     scheduleSensorCheck()
@@ -195,7 +216,7 @@ void thermostatOperatingStateHandler(evt) {
     }
 }
 
-def averageTemperature() {
+private def averageTemperature() {
     def total = 0
     def count = 0
 
@@ -207,12 +228,12 @@ def averageTemperature() {
     return total / count
 }
 
-void logDebug(String msg) {
+private void logDebug(String msg) {
     if (logEnable) {
         log.debug "${app.label}: ${msg}"
     }
 }
 
-void logInfo(String msg) {
+private void logInfo(String msg) {
     log.info "${app.label}: ${msg}"
 }
