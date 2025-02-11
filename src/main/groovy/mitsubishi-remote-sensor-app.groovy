@@ -10,7 +10,7 @@
 
 import groovy.transform.Field
 
-@Field static def avoidImmediateCycleDegrees = 2.0
+import java.math.RoundingMode
 
 definition(
         name: "Mitsubishi Remote Sensor with Heat Pump",
@@ -73,7 +73,7 @@ void updated() {
     unschedule()
     unsubscribe()
 
-    subscribeToOffDeltaVariable()
+    setEffectiveOffDelta()
     subscribe(sensors, "temperature", sensorHandler)
     // To turn HP on or off
     subscribe(thermostat, "thermostatSetpoint", thermostatTempHandler)
@@ -88,18 +88,29 @@ void updated() {
     scheduleSensorCheck()
 }
 
-private void subscribeToOffDeltaVariable() {
-    if (canTurnOff && offDeltaByVariable && offDeltaVariable) {
-        offDelta = getGlobalVar(offDeltaVariable).value
-        logDebug "offDelta: ${offDelta}"
-        addInUseGlobalVar(offDeltaVariable)
-        subscribe(location, "variable:${offDeltaVariable}", "offDeltaVariableHandler")
+private void setEffectiveOffDelta() {
+    if (!subscribeToOffDeltaVariable() && canTurnOff && offDelta) {
+        state.effectiveOffDelta = new BigDecimal(offDelta).setScale(2, RoundingMode.HALF_UP)
+        logDebug "effectiveOffDelta: ${state.effectiveOffDelta}"
+    } else {
+        state.remove("effectiveOffDelta")
     }
 }
 
+private boolean subscribeToOffDeltaVariable() {
+    if (canTurnOff && offDeltaByVariable && offDeltaVariable && addInUseGlobalVar(offDeltaVariable)) {
+        BigDecimal tmpDelta = getGlobalVar(offDeltaVariable).value
+        state.effectiveOffDelta = tmpDelta.setScale(2, RoundingMode.HALF_UP)
+        logDebug "effectiveOffDelta derived from ${offDeltaVariable}: ${state.effectiveOffDelta}"
+        subscribe(location, "variable:${offDeltaVariable}", "offDeltaVariableHandler")
+        return true
+    }
+    return false
+}
+
 void offDeltaVariableHandler(evt) {
-    offDelta = evt.value
-    logDebug "offDelta: ${offDelta}"
+    state.effectiveOffDelta = evt.value
+    logDebug "effectiveOffDelta: ${state.effectiveOffDelta}"
 }
 
 void renameVariable(String oldName, String newName) {
@@ -142,13 +153,13 @@ void sensorTimeout() {
 
 void thermostatTempHandler(evt) {
     logDebug "thermostatTempHandler(): ${evt.name} ${evt.value}"
-    toggleThermostatModeAsNeeded()
+    runIn(10, "toggleThermostatModeAsNeeded") // Give automations a little time to run
 }
 
 void toggleThermostatModeAsNeeded() {
     String thermostatMode = thermostat.currentValue("thermostatMode")
 
-    if (canTurnOff && offDelta > 0) {
+    if (state.effectiveOffDelta) {
         if (tooFarPastSetpoint(thermostatMode)) {
             if (thermostatMode != "off") {
                 logInfo "Turning off heat pump"
@@ -167,28 +178,31 @@ void toggleThermostatModeAsNeeded() {
                 thermostat.cool()
             }
         }
+    } else if (canTurnOff) {
+        log.warn "canTurnOff is true, but state.effectiveOffDelta is invalid"
     }
 }
 
-boolean tooFarPastSetpoint(String thermostatMode) {
+private boolean tooFarPastSetpoint(String thermostatMode) {
     boolean ret = false
     def thermostatSetpoint = thermostat.currentValue("thermostatSetpoint")
     def currentTemp = averageTemperature()
+    BigDecimal effectiveOffDelta = new BigDecimal(state.effectiveOffDelta).setScale(2, RoundingMode.HALF_UP)
 
     if (thermostatMode == "heat") {
-        ret = currentTemp > thermostatSetpoint + offDelta
+        ret = currentTemp > thermostatSetpoint + effectiveOffDelta
         if (ret) {
-            logDebug "${currentTemp} > ${thermostatSetpoint} + ${offDelta}"
+            logDebug "${currentTemp} > ${thermostatSetpoint} + ${effectiveOffDelta}"
         }
     } else if (state.previousThermostatMode == "heat") {
-        ret = currentTemp > thermostatSetpoint + offDelta - 0.5
+        ret = currentTemp > thermostatSetpoint + effectiveOffDelta - 0.5
     } else if (thermostatMode == "cool") {
-        ret = currentTemp < thermostatSetpoint - offDelta
+        ret = currentTemp < thermostatSetpoint - effectiveOffDelta
         if (ret) {
-            logDebug "${currentTemp} < ${thermostatSetpoint} - ${offDelta}"
+            logDebug "${currentTemp} < ${thermostatSetpoint} - ${effectiveOffDelta}"
         }
     } else if (state.previousThermostatMode == "cool") {
-        ret = currentTemp < thermostatSetpoint - offDelta + 0.5
+        ret = currentTemp < thermostatSetpoint - effectiveOffDelta + 0.5
     }
 
     return ret
@@ -200,7 +214,7 @@ void thermostatModeHandler(evt) {
     if (thermostatMode != "off") {
         if (state.previousThermostatMode) { // HP was turned off by this app
             logDebug "Clearing previousThermostatMode"
-            state.previousThermostatMode = null
+            state.remove("previousThermostatMode")
         }
     } else {
         unschedule("sensorTimeout")

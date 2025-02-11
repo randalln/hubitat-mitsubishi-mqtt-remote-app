@@ -1,9 +1,9 @@
 {
   "packageName": "Mitsubishi Heat Pump Remote Sensor",
   "author": "Randall Norviel",
-  "version": "0.2.12",
+  "version": "0.8.0",
   "minimumHEVersion": "2.4.0",
-  "dateReleased": "2025-02-10",
+  "dateReleased": "2025-02-11",
   "apps": [
     {
       "id": "be78aed3-8295-4676-846f-8ecc02d5b9a5",
@@ -25,5 +25,5 @@
     }
   ],
   "drivers": [],
-  "releaseNotes": "[v0.2.12] Fix input type for timeout"
+  "releaseNotes": "[v0.8.0] Let the app use a hub variable for offDelta"
 }
