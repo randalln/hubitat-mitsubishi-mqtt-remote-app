@@ -8,8 +8,6 @@
  * https://github.com/randalln/hubitat-mitsubishi-mqtt-remote-app
  */
 
-import groovy.transform.Field
-
 import java.math.RoundingMode
 
 definition(
@@ -89,18 +87,26 @@ void updated() {
 }
 
 private void setEffectiveOffDelta() {
-    if (!subscribeToOffDeltaVariable() && canTurnOff && offDelta) {
-        state.effectiveOffDelta = new BigDecimal(offDelta).setScale(2, RoundingMode.HALF_UP)
-        logDebug "effectiveOffDelta: ${state.effectiveOffDelta}"
-    } else {
+    Boolean success = false
+    if (canTurnOff) {
+        success = maybeSubscribeToOffDeltaVariable()
+        if (!success && offDelta) {
+            state.effectiveOffDelta = new BigDecimal(offDelta).setScale(1, RoundingMode.HALF_UP)
+            logDebug "effectiveOffDelta: ${state.effectiveOffDelta}"
+            success = true
+        }
+    }
+
+    if (!success) {
+        logDebug "Removing effectiveOffDelta from state"
         state.remove("effectiveOffDelta")
     }
 }
 
-private boolean subscribeToOffDeltaVariable() {
+private boolean maybeSubscribeToOffDeltaVariable() {
     if (canTurnOff && offDeltaByVariable && offDeltaVariable && addInUseGlobalVar(offDeltaVariable)) {
         BigDecimal tmpDelta = getGlobalVar(offDeltaVariable).value
-        state.effectiveOffDelta = tmpDelta.setScale(2, RoundingMode.HALF_UP)
+        state.effectiveOffDelta = tmpDelta.setScale(1, RoundingMode.HALF_UP)
         logDebug "effectiveOffDelta derived from ${offDeltaVariable}: ${state.effectiveOffDelta}"
         subscribe(location, "variable:${offDeltaVariable}", "offDeltaVariableHandler")
         return true
@@ -117,7 +123,7 @@ void renameVariable(String oldName, String newName) {
     logDebug "${oldName} renamed to ${newName}"
     removeInUseGlobalVar(oldName)
     offDeltaVariable = newName
-    subscribeToOffDeltaVariable()
+    maybeSubscribeToOffDeltaVariable()
 }
 
 void sensorHandler(evt) {
@@ -187,7 +193,7 @@ private boolean tooFarPastSetpoint(String thermostatMode) {
     boolean ret = false
     def thermostatSetpoint = thermostat.currentValue("thermostatSetpoint")
     def currentTemp = averageTemperature()
-    BigDecimal effectiveOffDelta = new BigDecimal(state.effectiveOffDelta).setScale(2, RoundingMode.HALF_UP)
+    BigDecimal effectiveOffDelta = new BigDecimal(state.effectiveOffDelta).setScale(1, RoundingMode.HALF_UP)
 
     if (thermostatMode == "heat") {
         ret = currentTemp > thermostatSetpoint + effectiveOffDelta
