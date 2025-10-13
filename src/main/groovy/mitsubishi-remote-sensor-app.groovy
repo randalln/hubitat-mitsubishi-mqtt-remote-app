@@ -129,7 +129,7 @@ void renameVariable(String oldName, String newName) {
 void sensorHandler(evt) {
     logDebug "sensorHandler(): ${evt.name} ${evt.value}"
     try { // Protect (as best one can) against Groovy
-        scheduleSensorCheck() // If operating, reschedule an existing timeout from now
+        scheduleSensorCheck() // (Re)schedule a timeout from now
     } catch (Exception e) {
         sensorTimeout()
         throw e
@@ -139,7 +139,7 @@ void sensorHandler(evt) {
 }
 
 private void scheduleSensorCheck() {
-    unschedule("sensorTimeout")
+    unScheduleSensorCheck() // Clear any pending checks
     if (timeout) {
         String thermostatOperatingState = thermostat.currentValue("thermostatOperatingState")
         if (thermostatOperatingState == "heating" || thermostatOperatingState == "cooling") {
@@ -147,6 +147,10 @@ private void scheduleSensorCheck() {
             runIn(timeout * 60, "sensorTimeout")
         }
     }
+}
+
+private void unScheduleSensorCheck() {
+    unschedule("sensorTimeout")
 }
 
 /**
@@ -229,10 +233,12 @@ void thermostatModeHandler(evt) {
 
 void thermostatOperatingStateHandler(evt) {
     logDebug "thermostatOperatingStateHandler(): ${evt.name} ${evt.value}"
-    scheduleSensorCheck()
     if (evt.value == "idle") {
-        logDebug "Setting remote temp at idle: ${averageTemperature()}"
+        logDebug "Setting remote temp at ${evt.value}: ${averageTemperature()}"
+        unScheduleSensorCheck()
         thermostat.setRemoteTemperature(averageTemperature())
+    } else {
+        scheduleSensorCheck()
     }
 }
 
