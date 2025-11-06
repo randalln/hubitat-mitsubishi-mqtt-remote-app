@@ -163,7 +163,10 @@ void sensorTimeout() {
 
 void thermostatTempHandler(evt) {
     logDebug "thermostatTempHandler(): ${evt.name} ${evt.value}"
-    runIn(10, "toggleThermostatModeAsNeeded") // Give automations a little time to run
+    // This callback was receiving double events, e.g. heatingSetpoint and thermostatSetpoint, so only act on the expected ones!
+    if (evt.name == "thermostatSetpoint" || evt.name == "temperature") {
+        runIn(10, "toggleThermostatModeAsNeeded") // Give automations a little time to run
+    }
 }
 
 void toggleThermostatModeAsNeeded() {
@@ -173,8 +176,9 @@ void toggleThermostatModeAsNeeded() {
         if (tooFarPastSetpoint(thermostatMode)) {
             if (thermostatMode != "off") {
                 logInfo "Turning off heat pump"
-                if (thermostat.currentValue("thermostatOperatingState") != "idle") {
-                    log.warn "Heat pump currently operating"
+                String currentOperatingState = thermostat.currentValue("thermostatOperatingState")
+                if (currentOperatingState != "idle") {
+                    log.warn "Heat pump currently operating: $currentOperatingState"
                 }
                 state.previousThermostatMode = thermostatMode
                 thermostat.off()
