@@ -3,7 +3,7 @@
   "author": "Randall Norviel",
   "version": "0.8.1",
   "minimumHEVersion": "2.4.0",
-  "dateReleased": "2025-03-10",
+  "dateReleased": "2025-11-07",
   "apps": [
     {
       "id": "be78aed3-8295-4676-846f-8ecc02d5b9a5",
@@ -25,5 +25,5 @@
     }
   ],
   "drivers": [],
-  "releaseNotes": "[v0.8.1] Fix canTurnOff bug"
+  "releaseNotes": "[v0.8.2] Mitigate double events and enhance logging"
 }
